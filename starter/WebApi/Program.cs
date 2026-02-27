@@ -6,7 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddSqliteDbContext<ApplicationDataContext>("database");
 builder.Services.AddOpenApi();
-builder.Services.AddScoped<IDummyLogic, DummyLogic>();
+
+// Register business logic services
+builder.Services.AddScoped<IConfigurationOptimizer, ConfigurationOptimizer>();
+builder.Services.AddScoped<IScheduleValidator, ScheduleValidator>();
+builder.Services.AddScoped<IBookingCurveAnalyzer, BookingCurveAnalyzer>();
+
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
@@ -17,6 +22,7 @@ app.MapOpenApi();
 app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "v1"));
 app.UseHttpsRedirection();
 
-app.MapDemoEndpoints();
+// Map flight planning endpoints
+app.MapFlightPlanningEndpoints();
 
 app.Run();

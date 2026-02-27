@@ -4,159 +4,225 @@ using TestInfrastructure;
 
 namespace AppServicesTests;
 
+/// <summary>
+/// Example tests demonstrating database CRUD operations using the DatabaseFixture.
+/// These tests use the in-memory SQLite database and verify the data model works correctly.
+/// </summary>
 public class DatabaseTestsWithClassFixture(DatabaseFixture fixture)
     : IClassFixture<DatabaseFixture>
 {
     [Fact]
-    public async Task CanAddAndRetrieveDummy()
+    public async Task CanAddAndRetrieveFlight()
     {
         // Arrange & Act
-        int dummyId;
+        int flightId;
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = new Dummy 
+            var flight = new Flight 
             { 
-                Name = "Test Dummy", 
-                DecimalProperty = 42.5m 
+                FlightNumber = "FR1234",
+                Route = "VIE-LPA",
+                FlightDate = new DateTime(2026, 2, 1),
+                SeatCapacity = 220,
+                SoldSeats = 0,
+                BaseFare = 29.99m,
+                TotalRevenue = 0m,
+                TotalCost = 0m
             };
-            context.Dummies.Add(dummy);
+            context.Flights.Add(flight);
             await context.SaveChangesAsync();
-            dummyId = dummy.Id;
+            flightId = flight.Id;
         }
 
         // Assert
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = await context.Dummies.FindAsync(dummyId);
-            Assert.NotNull(dummy);
-            Assert.Equal("Test Dummy", dummy.Name);
-            Assert.Equal(42.5m, dummy.DecimalProperty);
+            var flight = await context.Flights.FindAsync(flightId);
+            Assert.NotNull(flight);
+            Assert.Equal("FR1234", flight.FlightNumber);
+            Assert.Equal("VIE-LPA", flight.Route);
+            Assert.Equal(220, flight.SeatCapacity);
         }
     }
 
     [Fact]
-    public async Task CanUpdateDummy()
+    public async Task CanAddBookingRecordWithFlight()
     {
-        // Arrange
-        int dummyId;
+        // Arrange & Act
+        int bookingId;
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = new Dummy 
-            { 
-                Name = "Original Name", 
-                DecimalProperty = 10.0m 
+            var flight = new Flight
+            {
+                FlightNumber = "FR5678",
+                Route = "VIE-AGP",
+                FlightDate = new DateTime(2026, 3, 1),
+                SeatCapacity = 240,
+                SoldSeats = 0,
+                BaseFare = 34.99m,
+                TotalRevenue = 0m,
+                TotalCost = 0m
             };
-            context.Dummies.Add(dummy);
+            context.Flights.Add(flight);
             await context.SaveChangesAsync();
-            dummyId = dummy.Id;
+
+            var booking = new BookingRecord
+            {
+                FlightId = flight.Id,
+                BookingDate = new DateTime(2026, 2, 15),
+                TicketPrice = 34.99m,
+                PassengerCount = 1
+            };
+            context.BookingRecords.Add(booking);
+            await context.SaveChangesAsync();
+            bookingId = booking.Id;
         }
 
-        // Act
+        // Assert
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = await context.Dummies.FindAsync(dummyId);
-            Assert.NotNull(dummy);
-            dummy.Name = "Updated Name";
-            dummy.DecimalProperty = 20.5m;
+            var booking = await context.BookingRecords
+                .Include(b => b.Flight)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+            
+            Assert.NotNull(booking);
+            Assert.Equal(34.99m, booking.TicketPrice);
+            Assert.Equal(1, booking.PassengerCount);
+            Assert.NotNull(booking.Flight);
+            Assert.Equal("FR5678", booking.Flight.FlightNumber);
+        }
+    }
+
+    [Fact]
+    public async Task CanUpdateFlightRevenue()
+    {
+        // Arrange
+        int flightId;
+        await using (var context = new ApplicationDataContext(fixture.Options))
+        {
+            var flight = new Flight 
+            { 
+                FlightNumber = "FR9999",
+                Route = "VIE-BCN",
+                FlightDate = new DateTime(2026, 4, 1),
+                SeatCapacity = 220,
+                SoldSeats = 0,
+                BaseFare = 29.99m,
+                TotalRevenue = 0m,
+                TotalCost = 0m
+            };
+            context.Flights.Add(flight);
+            await context.SaveChangesAsync();
+            flightId = flight.Id;
+        }
+
+        // Act - Simulate adding bookings and updating revenue
+        await using (var context = new ApplicationDataContext(fixture.Options))
+        {
+            var flight = await context.Flights.FindAsync(flightId);
+            Assert.NotNull(flight);
+            
+            flight.SoldSeats = 150;
+            flight.TotalRevenue = 6500.75m;
             await context.SaveChangesAsync();
         }
 
         // Assert
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = await context.Dummies.FindAsync(dummyId);
-            Assert.NotNull(dummy);
-            Assert.Equal("Updated Name", dummy.Name);
-            Assert.Equal(20.5m, dummy.DecimalProperty);
+            var flight = await context.Flights.FindAsync(flightId);
+            Assert.NotNull(flight);
+            Assert.Equal(150, flight.SoldSeats);
+            Assert.Equal(6500.75m, flight.TotalRevenue);
         }
     }
 
     [Fact]
-    public async Task CanDeleteDummy()
+    public async Task CanDeleteFlightCascadesBookings()
     {
         // Arrange
-        int dummyId;
+        int flightId;
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = new Dummy 
-            { 
-                Name = "To Delete", 
-                DecimalProperty = 5.0m 
+            var flight = new Flight
+            {
+                FlightNumber = "FR0001",
+                Route = "VIE-OPO",
+                FlightDate = new DateTime(2026, 5, 1),
+                SeatCapacity = 220,
+                SoldSeats = 0,
+                BaseFare = 29.99m,
+                TotalRevenue = 0m,
+                TotalCost = 0m
             };
-            context.Dummies.Add(dummy);
+            context.Flights.Add(flight);
             await context.SaveChangesAsync();
-            dummyId = dummy.Id;
-        }
+            flightId = flight.Id;
 
-        // Act
-        await using (var context = new ApplicationDataContext(fixture.Options))
-        {
-            var dummy = await context.Dummies.FindAsync(dummyId);
-            Assert.NotNull(dummy);
-            context.Dummies.Remove(dummy);
-            await context.SaveChangesAsync();
-        }
-
-        // Assert
-        await using (var context = new ApplicationDataContext(fixture.Options))
-        {
-            var dummy = await context.Dummies.FindAsync(dummyId);
-            Assert.Null(dummy);
-        }
-    }
-
-    [Fact]
-    public async Task CanQueryMultipleDummies()
-    {
-        // Arrange
-        await using (var context = new ApplicationDataContext(fixture.Options))
-        {
-            context.Dummies.AddRange(
-                new Dummy { Name = "Query Test 1", DecimalProperty = 10.0m },
-                new Dummy { Name = "Query Test 2", DecimalProperty = 20.0m },
-                new Dummy { Name = "Query Test 3", DecimalProperty = 30.0m }
-            );
+            // Add a booking
+            var booking = new BookingRecord
+            {
+                FlightId = flight.Id,
+                BookingDate = new DateTime(2026, 4, 15),
+                TicketPrice = 29.99m,
+                PassengerCount = 1
+            };
+            context.BookingRecords.Add(booking);
             await context.SaveChangesAsync();
         }
 
-        // Act & Assert
+        // Act - Delete the flight
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummies = await context.Dummies
-                .Where(d => d.Name.StartsWith("Query Test") && d.DecimalProperty >= 15.0m)
-                .OrderBy(d => d.Name)
+            var flight = await context.Flights.FindAsync(flightId);
+            Assert.NotNull(flight);
+            context.Flights.Remove(flight);
+            await context.SaveChangesAsync();
+        }
+
+        // Assert - Flight and bookings should be deleted (cascade)
+        await using (var context = new ApplicationDataContext(fixture.Options))
+        {
+            var flight = await context.Flights.FindAsync(flightId);
+            Assert.Null(flight);
+
+            var bookings = await context.BookingRecords
+                .Where(b => b.FlightId == flightId)
                 .ToListAsync();
-
-            Assert.Equal(2, dummies.Count);
-            Assert.Equal("Query Test 2", dummies[0].Name);
-            Assert.Equal("Query Test 3", dummies[1].Name);
+            Assert.Empty(bookings);
         }
     }
 
     [Fact]
-    public async Task DecimalPropertyStoresCorrectly()
+    public async Task CanAddAndRetrieveRoute()
     {
         // Arrange & Act
-        int dummyId;
+        int routeId;
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = new Dummy 
-            { 
-                Name = "Decimal Test", 
-                DecimalProperty = 123.456m 
+            var route = new Route
+            {
+                RouteCode = "VIE-LPA",
+                Origin = "VIE",
+                Destination = "LPA",
+                TypicalDemand = 215,
+                AverageFare = 67.50m
             };
-            context.Dummies.Add(dummy);
+            context.Routes.Add(route);
             await context.SaveChangesAsync();
-            dummyId = dummy.Id;
+            routeId = route.Id;
         }
 
         // Assert
         await using (var context = new ApplicationDataContext(fixture.Options))
         {
-            var dummy = await context.Dummies.FindAsync(dummyId);
-            Assert.NotNull(dummy);
-            // Note: Due to the REAL conversion in your model, precision might be limited
-            Assert.Equal(123.456m, dummy.DecimalProperty, 3);
+            var route = await context.Routes.FindAsync(routeId);
+            Assert.NotNull(route);
+            Assert.Equal("VIE-LPA", route.RouteCode);
+            Assert.Equal("VIE", route.Origin);
+            Assert.Equal("LPA", route.Destination);
+            Assert.Equal(215, route.TypicalDemand);
+            Assert.Equal(67.50m, route.AverageFare);
         }
     }
 }

@@ -1,0 +1,2 @@
+# Prevent deletion of manual web-api-client
+src/app/api/web-api-client.ts

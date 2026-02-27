@@ -3,7 +3,7 @@ namespace Importer;
 /// <summary>
 /// Result of command line parsing
 /// </summary>
-public record CommandLineArgs(string CsvFilePath, bool IsDryRun);
+public record CommandLineArgs(string Command, string CsvFilePath, bool IsDryRun);
 
 /// <summary>
 /// Parser for command line arguments
@@ -14,12 +14,32 @@ public class CommandLineParser
     {
         if (args.Length == 0)
         {
-            throw new ArgumentException("Please provide a CSV file path as a command line argument.\nUsage: Importer <csv-file-path> [--dry-run]");
+            throw new ArgumentException(
+                "Please provide a command and CSV file path.\n" +
+                "Usage:\n" +
+                "  Importer import-bookings --file <csv-file-path> [--dry-run]\n" +
+                "  Importer <csv-file-path> [--dry-run]  (legacy format)");
         }
 
-        var csvFilePath = args[0];
-        var isDryRun = args.Any(arg => arg == "--dry-run");
+        // Check for new command format: import-bookings --file <path>
+        if (args[0] == "import-bookings")
+        {
+            var fileIndex = Array.IndexOf(args, "--file");
+            if (fileIndex == -1 || fileIndex + 1 >= args.Length)
+            {
+                throw new ArgumentException("Missing --file argument. Usage: import-bookings --file <csv-file-path>");
+            }
 
-        return new CommandLineArgs(csvFilePath, isDryRun);
+            var csvFilePath = args[fileIndex + 1];
+            var isDryRun = args.Any(arg => arg == "--dry-run");
+
+            return new CommandLineArgs("import-bookings", csvFilePath, isDryRun);
+        }
+
+        // Legacy format: Importer <csv-file-path> [--dry-run]
+        var legacyCsvFilePath = args[0];
+        var legacyIsDryRun = args.Any(arg => arg == "--dry-run");
+
+        return new CommandLineArgs("import-legacy", legacyCsvFilePath, legacyIsDryRun);
     }
 }

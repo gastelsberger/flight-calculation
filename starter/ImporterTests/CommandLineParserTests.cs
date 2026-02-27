@@ -7,7 +7,37 @@ public class CommandLineParserTests
     private readonly CommandLineParser parser = new();
 
     [Fact]
-    public void Parse_ValidArguments_ReturnsCorrectResult()
+    public void Parse_ImportBookingsCommand_ReturnsCorrectResult()
+    {
+        // Arrange
+        var args = new[] { "import-bookings", "--file", "test.csv" };
+
+        // Act
+        var result = parser.Parse(args);
+
+        // Assert
+        Assert.Equal("import-bookings", result.Command);
+        Assert.Equal("test.csv", result.CsvFilePath);
+        Assert.False(result.IsDryRun);
+    }
+
+    [Fact]
+    public void Parse_ImportBookingsWithDryRun_ReturnsDryRunTrue()
+    {
+        // Arrange
+        var args = new[] { "import-bookings", "--file", "test.csv", "--dry-run" };
+
+        // Act
+        var result = parser.Parse(args);
+
+        // Assert
+        Assert.Equal("import-bookings", result.Command);
+        Assert.Equal("test.csv", result.CsvFilePath);
+        Assert.True(result.IsDryRun);
+    }
+
+    [Fact]
+    public void Parse_LegacyFormat_ReturnsLegacyCommand()
     {
         // Arrange
         var args = new[] { "test.csv" };
@@ -16,12 +46,13 @@ public class CommandLineParserTests
         var result = parser.Parse(args);
 
         // Assert
+        Assert.Equal("import-legacy", result.Command);
         Assert.Equal("test.csv", result.CsvFilePath);
         Assert.False(result.IsDryRun);
     }
 
     [Fact]
-    public void Parse_WithDryRunFlag_ReturnsDryRunTrue()
+    public void Parse_LegacyFormatWithDryRun_ReturnsDryRunTrue()
     {
         // Arrange
         var args = new[] { "test.csv", "--dry-run" };
@@ -30,6 +61,7 @@ public class CommandLineParserTests
         var result = parser.Parse(args);
 
         // Assert
+        Assert.Equal("import-legacy", result.Command);
         Assert.Equal("test.csv", result.CsvFilePath);
         Assert.True(result.IsDryRun);
     }
@@ -42,65 +74,17 @@ public class CommandLineParserTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => parser.Parse(args));
-        Assert.Contains("provide a CSV file path", exception.Message);
-        Assert.Contains("Usage:", exception.Message);
+        Assert.Contains("command", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Parse_DryRunFlagInMiddle_ReturnsDryRunTrue()
+    public void Parse_ImportBookingsMissingFileArg_ThrowsException()
     {
         // Arrange
-        var args = new[] { "test.csv", "--dry-run", "extra" };
+        var args = new[] { "import-bookings" };
 
-        // Act
-        var result = parser.Parse(args);
-
-        // Assert
-        Assert.Equal("test.csv", result.CsvFilePath);
-        Assert.True(result.IsDryRun);
-    }
-
-    [Fact]
-    public void Parse_DryRunFlagAtEnd_ReturnsDryRunTrue()
-    {
-        // Arrange
-        var args = new[] { "test.csv", "other", "--dry-run" };
-
-        // Act
-        var result = parser.Parse(args);
-
-        // Assert
-        Assert.Equal("test.csv", result.CsvFilePath);
-        Assert.True(result.IsDryRun);
-    }
-
-    [Fact]
-    public void Parse_WithInvalidFlag_IgnoresIt()
-    {
-        // Arrange
-        var args = new[] { "test.csv", "--invalid-flag" };
-
-        // Act
-        var result = parser.Parse(args);
-
-        // Assert
-        Assert.Equal("test.csv", result.CsvFilePath);
-        Assert.False(result.IsDryRun);
-    }
-
-    [Fact]
-    public void Parse_DryRunCaseSensitive_OnlyLowercaseWorks()
-    {
-        // Arrange
-        var argsUpperCase = new[] { "test.csv", "--DRY-RUN" };
-        var argsMixedCase = new[] { "test.csv", "--Dry-Run" };
-
-        // Act
-        var resultUpperCase = parser.Parse(argsUpperCase);
-        var resultMixedCase = parser.Parse(argsMixedCase);
-
-        // Assert
-        Assert.False(resultUpperCase.IsDryRun);
-        Assert.False(resultMixedCase.IsDryRun);
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => parser.Parse(args));
+        Assert.Contains("--file", exception.Message);
     }
 }

@@ -1,0 +1,75 @@
+<div class="container">
+  <h1>Route Comparison</h1>
+
+  <!-- Filter input -->
+  <div class="filter-section">
+    <label for="filter">Filter by route code:</label>
+    <input 
+      type="text" 
+      id="filter"
+      [value]="filterText()"
+      (input)="onFilterChange($any($event.target).value)"
+      placeholder="e.g., VIE or LPA"
+    />
+  </div>
+
+  <!-- Routes table -->
+  <table class="routes-table">
+    <thead>
+      <tr>
+        <th (click)="onSort('routeCode')">
+          Route {{ getSortIndicator('routeCode') }}
+        </th>
+        <th (click)="onSort('totalFlights')">
+          Flights {{ getSortIndicator('totalFlights') }}
+        </th>
+        <th (click)="onSort('averageLoadFactor')">
+          Avg Load Factor {{ getSortIndicator('averageLoadFactor') }}
+        </th>
+        <th (click)="onSort('averageRevenue')">
+          Avg Revenue {{ getSortIndicator('averageRevenue') }}
+        </th>
+        <th (click)="onSort('averageCost')">
+          Avg Cost {{ getSortIndicator('averageCost') }}
+        </th>
+        <th (click)="onSort('averageProfit')">
+          Avg Profit {{ getSortIndicator('averageProfit') }}
+        </th>
+        <th (click)="onSort('recommendedConfiguration')">
+          Config {{ getSortIndicator('recommendedConfiguration') }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (route of filteredRoutes(); track route.routeCode) {
+        <tr>
+          <td>{{ route.routeCode }}</td>
+          <td>{{ route.totalFlights }}</td>
+          <td>{{ (route.averageLoadFactor * 100).toFixed(1) }}%</td>
+          <td>€{{ route.averageRevenue.toFixed(2) }}</td>
+          <td>€{{ route.averageCost.toFixed(2) }}</td>
+          <td [class]="getProfitClass(route.averageProfit)">
+            €{{ route.averageProfit.toFixed(2) }}
+          </td>
+          <td>{{ route.recommendedConfiguration }}</td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr class="summary-row">
+        <td colspan="1"><strong>Summary</strong></td>
+        <td>{{ summaryStats().totalFlights }}</td>
+        <td>{{ (summaryStats().averageLoadFactor * 100).toFixed(1) }}%</td>
+        <td colspan="2"></td>
+        <td [class]="getProfitClass(summaryStats().totalProfit)">
+          €{{ summaryStats().totalProfit.toFixed(2) }}
+        </td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  @if (filteredRoutes().length === 0) {
+    <p class="no-results">No routes found matching "{{ filterText() }}"</p>
+  }
+</div>

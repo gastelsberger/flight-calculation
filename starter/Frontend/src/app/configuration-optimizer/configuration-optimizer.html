@@ -1,0 +1,75 @@
+<div class="container">
+  <h1>Configuration Optimizer</h1>
+
+  <div class="form-section">
+    <form (submit)="onSubmit(); $event.preventDefault()">
+      <div class="form-group">
+        <label for="routeCode">Route Code:</label>
+        <input 
+          type="text" 
+          id="routeCode"
+          [value]="routeCode()"
+          (input)="routeCode.set($any($event.target).value)"
+          placeholder="e.g., VIE-LPA"
+          maxlength="7"
+          required
+        />
+        <small>Format: XXX-XXX (e.g., VIE-LPA)</small>
+      </div>
+
+      <button type="submit" [disabled]="isLoading()">
+        {{ isLoading() ? 'Loading...' : 'Get Recommendation' }}
+      </button>
+    </form>
+
+    @if (error()) {
+      <div class="error-message">
+        {{ error() }}
+      </div>
+    }
+  </div>
+
+  @if (recommendation()) {
+    <div class="results-section">
+      <h2>Recommendation</h2>
+      
+      <div class="recommendation-card">
+        <div class="recommendation-header">
+          <span class="label">Recommended Configuration:</span>
+          <span class="value">{{ recommendation()!.recommendedCapacity }} seats</span>
+        </div>
+        <div class="recommendation-detail">
+          <span class="label">Expected Load Factor:</span>
+          <span class="value">{{ (recommendation()!.expectedLoadFactor * 100).toFixed(1) }}%</span>
+        </div>
+        <div class="recommendation-reasoning">
+          {{ recommendation()!.reasoning }}
+        </div>
+      </div>
+
+      <h3>Configuration Comparison</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Configuration</th>
+            <th>Expected Load Factor</th>
+            <th>Expected Spillage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr [class.recommended]="recommendation()!.recommendedCapacity === 220">
+            <td>220 seats</td>
+            <td>{{ formatLoadFactor(getLoadFactorForCapacity(220)) }}</td>
+            <td>~{{ getSpillage(220) }} PAX</td>
+          </tr>
+          <tr [class.recommended]="recommendation()!.recommendedCapacity === 240">
+            <td>240 seats</td>
+            <td>{{ formatLoadFactor(getLoadFactorForCapacity(240)) }}</td>
+            <td>~{{ getSpillage(240) }} PAX</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footnote">* Exceeds 100% - demand exceeds capacity</p>
+    </div>
+  }
+</div>

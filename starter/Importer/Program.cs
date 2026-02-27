@@ -31,24 +31,39 @@ try
         return 1;
     }
 
-    // Get the importer service from DI container
-    var importer = host.Services.GetRequiredService<IDummyImporter>();
-
-    // Perform the import
-    var importedCount = await importer.ImportFromCsvAsync(parsedArgs.CsvFilePath, parsedArgs.IsDryRun);
-
-    Console.WriteLine($"\nSuccessfully imported {importedCount} record(s).");
-
-    if (parsedArgs.IsDryRun)
+    // Handle different commands
+    if (parsedArgs.Command == "import-bookings")
     {
-        Console.WriteLine("Dry-run mode: Transaction was rolled back.");
+        var bookingImporter = host.Services.GetRequiredService<IBookingDataImporter>();
+        var summary = await bookingImporter.ImportFromCsvAsync(parsedArgs.CsvFilePath);
+
+        Console.WriteLine($"\nProcessing {parsedArgs.CsvFilePath}...");
+        Console.WriteLine($"Total rows: {summary.TotalRowsProcessed}");
+        Console.WriteLine($"Successful imports: {summary.SuccessfulImports}");
+        Console.WriteLine($"Skipped (invalid): {summary.SkippedRows}");
+
+        if (summary.Warnings.Any())
+        {
+            Console.WriteLine("Warnings:");
+            foreach (var warning in summary.Warnings.Take(10))
+            {
+                Console.WriteLine($"  - {warning}");
+            }
+            if (summary.Warnings.Count > 10)
+            {
+                Console.WriteLine($"  ... and {summary.Warnings.Count - 10} more warnings");
+            }
+        }
+
+        Console.WriteLine("Import complete.");
+        return 0;
     }
     else
     {
-        Console.WriteLine("Transaction committed.");
+        // Legacy import (not used in this exercise, kept for compatibility)
+        Console.WriteLine("Legacy import not implemented. Use: import-bookings --file <path>");
+        return 1;
     }
-
-    return 0;
 }
 catch (ArgumentException ex)
 {
@@ -77,9 +92,9 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddDbContext<ApplicationDataContext>(options =>
         options.UseSqlite(connectionString));
 
-    // Register application services
+    // Register application services for booking import
     services.AddScoped<IFileReader, FileReader>();
-    services.AddScoped<IDummyCsvParser, DummyCsvParser>();
-    services.AddScoped<IDummyImportDatabaseWriter, DummyImportDatabaseWriter>();
-    services.AddScoped<IDummyImporter, DummyImporter>();
+    services.AddScoped<IBookingDataCsvParser, BookingDataCsvParser>();
+    services.AddScoped<IBookingImportDatabaseWriter, BookingImportDatabaseWriter>();
+    services.AddScoped<IBookingDataImporter, BookingDataImporter>();
 }

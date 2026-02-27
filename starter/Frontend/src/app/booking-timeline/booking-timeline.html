@@ -1,0 +1,89 @@
+<div class="container">
+  <h1>Booking Timeline Analysis</h1>
+
+  <div class="form-section">
+    <form (submit)="onSubmit(); $event.preventDefault()">
+      <div class="form-group">
+        <label for="flightId">Flight ID:</label>
+        <input 
+          type="number" 
+          id="flightId"
+          [value]="flightId()"
+          (input)="flightId.set(+$any($event.target).value)"
+          placeholder="Enter flight ID"
+          min="1"
+          required
+        />
+      </div>
+
+      <button type="submit" [disabled]="isLoading()">
+        {{ isLoading() ? 'Analyzing...' : 'Analyze Bookings' }}
+      </button>
+    </form>
+
+    @if (error()) {
+      <div class="error-message">
+        {{ error() }}
+      </div>
+    }
+  </div>
+
+  @if (analysis()) {
+    <div class="results-section">
+      <h2>Booking Analysis Results</h2>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Bookings</div>
+          <div class="stat-value">{{ analysis()!.totalBookings }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Average Ticket Price</div>
+          <div class="stat-value">€{{ analysis()!.averageTicketPrice.toFixed(2) }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Optimization Score</div>
+          <div class="stat-value" [class]="getScoreClass(analysis()!.revenueOptimizationScore)">
+            {{ (analysis()!.revenueOptimizationScore * 100).toFixed(1) }}%
+          </div>
+        </div>
+      </div>
+
+      <h3>Booking Distribution</h3>
+      <div class="booking-distribution">
+        <div class="bar-container">
+          <div class="bar-label">Early Bird (&gt;14 days)</div>
+          <div class="bar-wrapper">
+            <div class="bar bar-early" [style.width]="getBarWidth(analysis()!.earlyBirdPercentage)">
+              {{ (analysis()!.earlyBirdPercentage * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+
+        <div class="bar-container">
+          <div class="bar-label">Standard (8-14 days)</div>
+          <div class="bar-wrapper">
+            <div class="bar bar-standard" 
+                 [style.width]="getBarWidth(1.0 - analysis()!.earlyBirdPercentage - analysis()!.lastMinutePercentage)">
+              {{ ((1.0 - analysis()!.earlyBirdPercentage - analysis()!.lastMinutePercentage) * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+
+        <div class="bar-container">
+          <div class="bar-label">Last Minute (≤7 days)</div>
+          <div class="bar-wrapper">
+            <div class="bar bar-lastminute" [style.width]="getBarWidth(analysis()!.lastMinutePercentage)">
+              {{ (analysis()!.lastMinutePercentage * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-card">
+        <h3>Analysis</h3>
+        <p>{{ analysis()!.analysis }}</p>
+      </div>
+    </div>
+  }
+</div>
